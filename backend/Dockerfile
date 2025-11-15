@@ -27,5 +27,8 @@ COPY --from=builder /app/target/*.jar app.jar
 # Exponemos el puerto en el que correrá Spring Boot (por defecto 8080)
 EXPOSE 8080
 
+# Instalamos 'curl' para que el contenedor pueda responder a healthchecks basados en HTTP
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Comando para ejecutar la aplicación cuando se inicie el contenedor
 ENTRYPOINT ["java", "-jar", "app.jar"]

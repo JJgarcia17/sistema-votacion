@@ -25,8 +25,8 @@ public class Opcion {
     private String textoOpcion;
 
     @Builder.Default
-    @Column(name = "contador_votos", columnDefinition = "integer default 0")
-    private int contadorVotos = 0;
+    @Column(name = "contador_votos", columnDefinition = "bigint default 0")
+    private long contadorVotos = 0L;
 
     // --- AÑADE ESTA ANOTACIÓN ---
     @JsonBackReference

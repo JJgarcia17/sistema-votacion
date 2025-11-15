@@ -7,8 +7,11 @@ import com.votacion.api.repository.EncuestaRepository;
 import com.votacion.api.repository.OpcionRepository;
 import com.votacion.api.service.EncuestaService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.votacion.api.exception.ResourceNotFoundException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +23,7 @@ public class EncuestaServiceImpl implements EncuestaService {
     // Inyección de dependencias (Principio SOLID)
     private final EncuestaRepository encuestaRepository;
     private final OpcionRepository opcionRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional(readOnly = true)
@@ -55,14 +59,20 @@ public class EncuestaServiceImpl implements EncuestaService {
     @Override
     @Transactional
     public Opcion registrarVoto(Long opcionId) {
-        // Buscamos la opción en la DB. Si no existe, lanzará una excepción.
+        // Intentamos realizar un UPDATE atómico y obtener el nuevo contador (Postgres RETURNING)
+        String sql = "UPDATE opciones SET contador_votos = contador_votos + 1 WHERE id = ? RETURNING contador_votos";
+        Long nuevoContador;
+        try {
+            nuevoContador = jdbcTemplate.queryForObject(sql, new Object[]{opcionId}, Long.class);
+        } catch (EmptyResultDataAccessException ex) {
+            throw new ResourceNotFoundException("Opción no encontrada con id: " + opcionId);
+        }
+
+        // Recuperamos la entidad actualizada para devolverla al controlador
         Opcion opcion = opcionRepository.findById(opcionId)
-                .orElseThrow(() -> new RuntimeException("Opción no encontrada con id: " + opcionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Opción no encontrada con id: " + opcionId));
 
-        // Esta es la lógica de negocio
-        opcion.setContadorVotos(opcion.getContadorVotos() + 1);
-
-        // Guardamos la opción actualizada
-        return opcionRepository.save(opcion);
+        opcion.setContadorVotos(nuevoContador);
+        return opcion;
     }
 }

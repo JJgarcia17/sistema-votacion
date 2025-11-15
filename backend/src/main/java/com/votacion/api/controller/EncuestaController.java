@@ -1,6 +1,7 @@
 package com.votacion.api.controller;
 
 import com.votacion.api.dto.EncuestaRequest;
+import jakarta.validation.Valid;
 import com.votacion.api.model.Encuesta;
 import com.votacion.api.model.Opcion;
 import com.votacion.api.service.EncuestaService; // ¡Importante! Inyectamos la Interfaz
@@ -36,7 +37,7 @@ public class EncuestaController {
      * HTTP POST /api/encuestas
      */
     @PostMapping("/encuestas")
-    public ResponseEntity<Encuesta> crearEncuesta(@RequestBody EncuestaRequest encuestaRequest) {
+    public ResponseEntity<Encuesta> crearEncuesta(@Valid @RequestBody EncuestaRequest encuestaRequest) {
         // @RequestBody convierte el JSON de la petición en nuestro DTO
         Encuesta nuevaEncuesta = encuestaService.crearEncuesta(encuestaRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevaEncuesta); // Devuelve 201 Created

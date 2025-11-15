@@ -23,8 +23,8 @@ public class Opcion {
     @Column(nullable = false)
     private String textoOpcion;
 
-   
-    @Builder.Default 
+    // --- ESTA ES LA LÍNEA CORREGIDA ---
+    @Builder.Default // <-- AÑADE ESTO
     @Column(name = "contador_votos", columnDefinition = "integer default 0")
     private int contadorVotos = 0;
 

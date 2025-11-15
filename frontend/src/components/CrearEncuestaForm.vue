@@ -1,13 +1,16 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue'
 
 // --- 1. Estado Interno del Formulario ---
-const titulo = ref('');
+const titulo = ref('')
 // Empezamos con dos opciones por defecto
-const opciones = ref(['', '']); 
+const opciones = ref(['', ''])
 
 // Definimos el evento que este componente "emitirá" al padre
-const emit = defineEmits(['encuestaCreada']);
+const emit = defineEmits(['encuestaCreada', 'cancel'])
+
+const opcionesValidas = computed(() => opciones.value.map(t => t.trim()).filter(Boolean).length)
+const formularioValido = computed(() => titulo.value.trim().length > 0 && opcionesValidas.value >= 2)
 
 // --- 2. Lógica del Formulario ---
 
@@ -60,138 +63,47 @@ function enviarFormulario() {
 </script>
 
 <template>
-  <form @submit.prevent="enviarFormulario" class="form-crear-encuesta">
-    <h3>Crear Nueva Encuesta</h3>
-    
-    <div class="form-group">
-      <label for="titulo">Título de la Encuesta:</label>
-      <input 
-        type="text" 
-        id="titulo" 
-        v-model="titulo" 
+  <form @submit.prevent="enviarFormulario" class="card-surface p-6 relative">
+    <button type="button" @click="emit('cancel')" aria-label="Cerrar" class="absolute top-3 right-3 inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200">✕</button>
+    <h3 class="text-lg font-semibold mb-2 text-primary-700 text-center">Crear Nueva Encuesta</h3>
+    <p class="text-xs text-gray-500 text-center mb-4">Agrega al menos 2 opciones. Opciones válidas: {{ opcionesValidas }}</p>
+
+    <div class="mb-4">
+      <label for="titulo" class="block text-sm font-medium text-gray-700 mb-1">Título de la Encuesta:</label>
+      <input
+        type="text"
+        id="titulo"
+        v-model="titulo"
         placeholder="Ej: ¿Cuál es tu color favorito?"
         required
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500"
       />
     </div>
 
-    <div class="form-group" v-for="(opcion, index) in opciones" :key="index">
-      <label :for="`opcion-${index}`">Opción {{ index + 1 }}:</label>
-      <div class="opcion-input">
-        <input 
-          type="text" 
-          :id="`opcion-${index}`" 
+    <div v-for="(opcion, index) in opciones" :key="index" class="mb-3">
+      <label :for="`opcion-${index}`" class="block text-sm font-medium text-gray-700 mb-1">Opción {{ index + 1 }}:</label>
+      <div class="flex gap-2 items-center">
+        <input
+          type="text"
+          :id="`opcion-${index}`"
           v-model="opciones[index]"
           placeholder="Texto de la opción"
+          class="flex-1 rounded-md border-gray-300 shadow-sm focus:ring-primary-500 focus:border-primary-500"
         />
-        <button 
-          type="button" 
-          @click="quitarOpcion(index)" 
+        <button
+          type="button"
+          @click="quitarOpcion(index)"
           v-if="opciones.length > 2"
-          class="btn-quitar"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-danger text-white hover:bg-red-600"
         >
           &times;
         </button>
       </div>
     </div>
 
-    <div class="form-actions">
-      <button type="button" @click="agregarOpcion" class="btn-secundario">
-        Añadir Opción
-      </button>
-      <button type="submit" class="btn-principal">
-        Guardar Encuesta
-      </button>
+    <div class="flex justify-between mt-4 items-center">
+      <button type="button" @click="agregarOpcion" class="px-3 py-2 rounded-md bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200">Añadir Opción</button>
+      <button type="submit" :disabled="!formularioValido" :class="formularioValido ? 'btn-primary' : 'px-4 py-2 rounded-md bg-gray-200 text-gray-400 cursor-not-allowed'">Guardar Encuesta</button>
     </div>
   </form>
 </template>
-
-<style scoped>
-/* --- 4. Estilos (Scoped) --- */
-.form-crear-encuesta {
-  background-color: #fff;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  margin-bottom: 2rem;
-  border: 1px solid #e0e0e0;
-}
-
-.form-crear-encuesta h3 {
-  margin-top: 0;
-  text-align: center;
-}
-
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  box-sizing: border-box; /* Asegura que el padding no afecte el ancho */
-}
-
-.opcion-input {
-  display: flex;
-  align-items: center;
-}
-
-.opcion-input input {
-  flex-grow: 1;
-}
-
-.btn-quitar {
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  margin-left: 0.5rem;
-  cursor: pointer;
-  font-size: 1.2rem;
-  line-height: 1;
-  padding: 0;
-}
-.btn-quitar:hover {
-  background-color: #c0392b;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1.5rem;
-}
-
-.btn-principal, .btn-secundario {
-  border: none;
-  border-radius: 5px;
-  padding: 10px 15px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-principal {
-  background-color: #28a745;
-  color: white;
-}
-.btn-principal:hover {
-  background-color: #218838;
-}
-
-.btn-secundario {
-  background-color: #6c757d;
-  color: white;
-}
-.btn-secundario:hover {
-  background-color: #5a6268;
-}
-</style>

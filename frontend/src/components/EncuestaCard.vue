@@ -1,43 +1,44 @@
 <script setup>
-// --- 1. Definición de Contrato ---
+import { computed } from 'vue'
 
-// 'defineProps' le dice a Vue qué datos (props) espera este componente de su padre.
-// Espera un objeto 'encuesta' que es obligatorio.
-defineProps({
-  encuesta: {
-    type: Object,
-    required: true
-  }
-});
+const props = defineProps({
+  encuesta: { type: Object, required: true }
+})
+const emit = defineEmits(['votoRealizado'])
 
-// 'defineEmits' define los eventos que este componente puede "emitir" (enviar) a su padre.
-// Enviaremos un evento llamado 'votoRealizado' con el ID de la opción.
-const emit = defineEmits(['votoRealizado']);
+const totalVotos = computed(() => props.encuesta.opciones.reduce((s, o) => s + (o.contadorVotos || 0), 0))
 
-// --- 2. Lógica Local ---
+function porcentaje(opcion) {
+  if (totalVotos.value === 0) return 0
+  return Math.round(((opcion.contadorVotos || 0) / totalVotos.value) * 100)
+}
 
-// Esta función se llama cuando se hace clic en un botón de votar.
-// Su única responsabilidad es emitir el evento al padre.
 function votar(opcionId) {
-  emit('votoRealizado', opcionId);
+  emit('votoRealizado', opcionId)
 }
 </script>
 
 <template>
-  <article class="encuesta-card">
-    
-    <h3>{{ encuesta.titulo }}</h3>
-    
+  <article class="card-surface p-4 card-appear">
+    <h3 class="text-md font-semibold text-primary-700 mb-3">{{ props.encuesta.titulo }}</h3>
+
     <ul>
-      <li v-for="opcion in encuesta.opciones" :key="opcion.id">
-        
-        <span>{{ opcion.textoOpcion }}</span>
-        
-        <button @click="votar(opcion.id)">
-          Votar
-        </button>
-        
-        <small>Votos: {{ opcion.contadorVotos }}</small>
+      <li v-for="opcion in props.encuesta.opciones" :key="opcion.id" class="py-3">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-gray-800 font-medium">{{ opcion.textoOpcion }}</span>
+          <div class="flex items-center gap-3">
+            <small class="text-sm font-semibold text-gray-600">{{ opcion.contadorVotos ?? 0 }}</small>
+            <button @click="votar(opcion.id)" class="px-3 py-1 rounded-md bg-primary-600 text-white hover:bg-primary-700">Votar</button>
+          </div>
+        </div>
+
+        <div class="w-full bg-gray-100 h-3 rounded overflow-hidden">
+          <div class="h-3 bg-gradient-to-r from-primary-500 to-accent" :style="{ width: porcentaje(opcion) + '%' }"></div>
+        </div>
+        <div class="flex justify-between text-xs text-gray-500 mt-1">
+          <span>{{ porcentaje(opcion) }}%</span>
+          <span>Total: {{ totalVotos }}</span>
+        </div>
       </li>
     </ul>
   </article>

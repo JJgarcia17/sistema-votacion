@@ -1,9 +1,13 @@
 import axios from 'axios';
 
 // Creamos una instancia de axios.
-// NOTA: 'http://localhost:8080/api' es la URL de nuestro backend.
+// Base URL configurable via Vite env var `VITE_API_BASE_URL`.
+// En desarrollo puede ser 'http://localhost:8080/api'.
+// En Docker: usa el nombre del servicio backend (p. ej. 'http://backend:8080/api') o una URL absoluta.
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
+
 const apiClient = axios.create({
-    baseURL: 'http://localhost:8080/api',
+    baseURL,
     headers: {
         'Content-Type': 'application/json'
     }

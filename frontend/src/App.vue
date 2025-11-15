@@ -1,117 +1,147 @@
 <script setup>
-// --- 1. Importaciones ---
-import { ref, onMounted } from 'vue'; 
-import apiService from './services/apiService';
-import EncuestaCard from './components/EncuestaCard.vue'; 
-// ¡Importamos nuestro nuevo formulario!
-import CrearEncuestaForm from './components/CrearEncuestaForm.vue'; 
+import { ref, onMounted } from 'vue'
+import apiService from './services/apiService'
+import EncuestaCard from './components/EncuestaCard.vue'
+import CrearEncuestaForm from './components/CrearEncuestaForm.vue'
 
-// --- 2. Lógica (El "Cerebro") ---
+const encuestas = ref([])
+const cargando = ref(true)
+const errorCarga = ref(null)
+const mostrarForm = ref(false)
 
-const encuestas = ref([]); 
-const cargando = ref(true); 
+async function cargarEncuestas(reintentos = 3) {
+  cargando.value = true
+  errorCarga.value = null
 
-// Lógica de Carga (Sin cambios)
-onMounted(async () => {
-  try {
-    const response = await apiService.getEncuestas();
-    encuestas.value = response.data;
-  } catch (error) {
-    console.error('Error al cargar las encuestas:', error);
-  } finally {
-    cargando.value = false;
+  for (let intento = 1; intento <= reintentos; intento++) {
+    try {
+      const response = await apiService.getEncuestas()
+      const d = response.data
+
+      // Manejo robusto de distintas formas de respuesta
+      if (Array.isArray(d)) {
+        encuestas.value = d
+      } else if (d && Array.isArray(d.content)) {
+        encuestas.value = d.content
+      } else if (d && Array.isArray(d.encuestas)) {
+        encuestas.value = d.encuestas
+      } else {
+        // Si la forma no es la esperada, lo registramos y vaciamos
+        console.warn('Respuesta inesperada al cargar encuestas:', d)
+        encuestas.value = []
+      }
+
+      // éxito -> salimos
+      errorCarga.value = null
+      break
+    } catch (error) {
+      console.error(`Error en intento ${intento} al cargar encuestas:`, error)
+      errorCarga.value = 'Error al cargar encuestas. Reintentando...'
+      // espera breve antes de reintentar (backoff simple)
+      await new Promise(r => setTimeout(r, 500 * intento))
+    }
   }
-});
 
-// Lógica de Votación (Sin cambios)
+  cargando.value = false
+}
+
+onMounted(() => {
+  cargarEncuestas()
+})
+
 async function handleVoto(opcionId) {
   try {
-    const response = await apiService.votarPorOpcion(opcionId);
-    const opcionVotada = response.data;
+    const response = await apiService.votarPorOpcion(opcionId)
+    const opcionVotada = response.data
 
     for (const encuesta of encuestas.value) {
-      const opcion = encuesta.opciones.find(o => o.id === opcionId);
+      const opcion = encuesta.opciones.find(o => o.id === opcionId)
       if (opcion) {
-        opcion.contadorVotos = opcionVotada.contadorVotos;
-        break; 
+        opcion.contadorVotos = opcionVotada.contadorVotos
+        break
       }
     }
   } catch (error) {
-    console.error('Error al registrar el voto:', error);
+    console.error('Error al registrar el voto:', error)
   }
 }
 
-// --- NUEVA LÓGICA DE CREACIÓN ---
-// Esta función se activa cuando el formulario emite el evento 'encuestaCreada'
 async function handleCrearEncuesta(payload) {
   try {
-    // 1. Llamamos a la API con los datos del formulario
-    const response = await apiService.crearEncuesta(payload);
-    
-    // 2. Añadimos la nueva encuesta a nuestra lista reactiva
-    // La UI se actualizará automáticamente ¡sin recargar la página!
-    encuestas.value.push(response.data);
-    
+    const response = await apiService.crearEncuesta(payload)
+    encuestas.value.push(response.data)
+    mostrarForm.value = false
   } catch (error) {
-    console.error('Error al crear la encuesta:', error);
-    alert('Hubo un error al crear la encuesta. Intenta de nuevo.');
+    console.error('Error al crear la encuesta:', error)
+    alert('Hubo un error al crear la encuesta. Intenta de nuevo.')
   }
+}
+
+function toggleForm() {
+  mostrarForm.value = !mostrarForm.value
 }
 </script>
 
 <template>
-  <header>
-    <h1>🗳️ Sistema de Votación Simple</h1>
-  </header>
+  <div class="container mx-auto mt-8">
+    <header class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-extrabold text-primary-700">🗳️ Sistema de Votación</h1>
+      <div>
+        <button
+          @click="toggleForm"
+          :class="mostrarForm ? 'bg-primary-600 text-white' : 'bg-white text-primary-600 border border-primary-600'"
+          class="px-4 py-2 rounded-md font-semibold shadow-sm transition-colors"
+        >
+          {{ mostrarForm ? 'Cerrar' : 'Crear Encuesta' }}
+        </button>
+      </div>
+    </header>
 
-  <main>
-    <CrearEncuestaForm @encuestaCreada="handleCrearEncuesta" />
+    <main>
+      <div v-if="errorCarga" class="mb-4 text-red-600 font-medium">{{ errorCarga }}</div>
+      <transition name="fade">
+        <div v-if="mostrarForm" class="fixed inset-0 z-50 flex items-start justify-center py-12 overflow-auto">
+          <div class="fixed inset-0 bg-black/50"></div>
+          <div class="relative z-50 w-full max-w-2xl mx-4 max-h-[90vh] overflow-auto">
+            <CrearEncuestaForm @encuestaCreada="handleCrearEncuesta" @cancel="toggleForm" />
+          </div>
+        </div>
+      </transition>
 
-    <hr class="separador">
+      <section>
+        <h2 class="text-lg font-semibold mb-4">Encuestas Disponibles</h2>
 
-    <h2>Encuestas Disponibles</h2>
-    
-    <div v-if="cargando">
-      <p>Cargando encuestas...</p>
-    </div>
-    
-    <div v-else class="lista-encuestas">
-      <p v-if="encuestas.length === 0">
-        No hay encuestas disponibles. ¡Crea la primera!
-      </p>
-      
-      <EncuestaCard
-        v-for="encuesta in encuestas"
-        :key="encuesta.id"
-        :encuesta="encuesta" 
-        @votoRealizado="handleVoto" 
-      />
-    </div>
-  </main>
+        <div v-if="cargando" class="text-gray-600">Cargando encuestas...</div>
+
+        <div v-else>
+          <p v-if="encuestas.length === 0" class="text-gray-600">No hay encuestas disponibles. ¡Crea la primera!</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <EncuestaCard
+              v-for="encuesta in encuestas"
+              :key="encuesta.id"
+              :encuesta="encuesta"
+              @votoRealizado="handleVoto"
+            />
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 </template>
 
 <style>
-/* --- 4. Estilos (Globales) --- */
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #f4f7f6;
-  color: #333;
-  margin: 0;
-  padding: 2rem;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s
 }
 
-header {
-  text-align: center;
-  border-bottom: 2px solid #ddd;
-  padding-bottom: 1rem;
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0
 }
 
-main {
-  max-width: 800px;
-  margin: 2rem auto;
-}
-
-/* Estilo para el separador */
+/* Estilo para el separador (no usado actualmente) */
 .separador {
   border: none;
   border-top: 1px solid #eee;

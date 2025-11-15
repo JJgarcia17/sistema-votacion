@@ -2,16 +2,16 @@
 // --- 1. Importaciones ---
 import { ref, onMounted } from 'vue'; 
 import apiService from './services/apiService';
-// ¡Importamos nuestro nuevo componente!
 import EncuestaCard from './components/EncuestaCard.vue'; 
+// ¡Importamos nuestro nuevo formulario!
+import CrearEncuestaForm from './components/CrearEncuestaForm.vue'; 
 
 // --- 2. Lógica (El "Cerebro") ---
 
-// Estado reactivo: la lista de encuestas
 const encuestas = ref([]); 
-const cargando = ref(true); // Estado para saber si estamos cargando
+const cargando = ref(true); 
 
-// Lógica de Carga: Se ejecuta al montar el componente
+// Lógica de Carga (Sin cambios)
 onMounted(async () => {
   try {
     const response = await apiService.getEncuestas();
@@ -19,18 +19,16 @@ onMounted(async () => {
   } catch (error) {
     console.error('Error al cargar las encuestas:', error);
   } finally {
-    cargando.value = false; // Terminamos de cargar
+    cargando.value = false;
   }
 });
 
-// Lógica de Votación: Esta función la llamará el evento del hijo
+// Lógica de Votación (Sin cambios)
 async function handleVoto(opcionId) {
   try {
     const response = await apiService.votarPorOpcion(opcionId);
     const opcionVotada = response.data;
 
-    // Actualiza el estado local para reflejar el voto
-    // (Esta lógica se queda aquí, en el "cerebro")
     for (const encuesta of encuestas.value) {
       const opcion = encuesta.opciones.find(o => o.id === opcionId);
       if (opcion) {
@@ -42,6 +40,23 @@ async function handleVoto(opcionId) {
     console.error('Error al registrar el voto:', error);
   }
 }
+
+// --- NUEVA LÓGICA DE CREACIÓN ---
+// Esta función se activa cuando el formulario emite el evento 'encuestaCreada'
+async function handleCrearEncuesta(payload) {
+  try {
+    // 1. Llamamos a la API con los datos del formulario
+    const response = await apiService.crearEncuesta(payload);
+    
+    // 2. Añadimos la nueva encuesta a nuestra lista reactiva
+    // La UI se actualizará automáticamente ¡sin recargar la página!
+    encuestas.value.push(response.data);
+    
+  } catch (error) {
+    console.error('Error al crear la encuesta:', error);
+    alert('Hubo un error al crear la encuesta. Intenta de nuevo.');
+  }
+}
 </script>
 
 <template>
@@ -50,6 +65,10 @@ async function handleVoto(opcionId) {
   </header>
 
   <main>
+    <CrearEncuestaForm @encuestaCreada="handleCrearEncuesta" />
+
+    <hr class="separador">
+
     <h2>Encuestas Disponibles</h2>
     
     <div v-if="cargando">
@@ -57,6 +76,9 @@ async function handleVoto(opcionId) {
     </div>
     
     <div v-else class="lista-encuestas">
+      <p v-if="encuestas.length === 0">
+        No hay encuestas disponibles. ¡Crea la primera!
+      </p>
       
       <EncuestaCard
         v-for="encuesta in encuestas"
@@ -64,14 +86,12 @@ async function handleVoto(opcionId) {
         :encuesta="encuesta" 
         @votoRealizado="handleVoto" 
       />
-      </div>
+    </div>
   </main>
 </template>
 
 <style>
-/* --- 4. Estilos (CSS) ---
-   Estos son estilos GLOBALES.
-   Los estilos específicos de la tarjeta ya están en EncuestaCard.vue (scoped). */
+/* --- 4. Estilos (Globales) --- */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background-color: #f4f7f6;
@@ -89,5 +109,12 @@ header {
 main {
   max-width: 800px;
   margin: 2rem auto;
+}
+
+/* Estilo para el separador */
+.separador {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 2.5rem 0;
 }
 </style>

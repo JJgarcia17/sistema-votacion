@@ -2,6 +2,7 @@ package com.votacion.api.exception;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -16,24 +17,24 @@ import java.util.stream.Collectors;
 @ControllerAdvice
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
-                                                                  HttpHeaders headers,
-                                                                  HttpStatus status,
-                                                                  WebRequest request) {
+        @Override
+        protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+                                      HttpHeaders headers,
+                                      HttpStatusCode status,
+                                      WebRequest request) {
         Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
-                .collect(Collectors.toMap(
-                        fieldError -> fieldError.getField(),
-                        fieldError -> fieldError.getDefaultMessage(),
-                        (existing, replacement) -> existing
-                ));
+            .collect(Collectors.toMap(
+                fieldError -> fieldError.getField(),
+                fieldError -> fieldError.getDefaultMessage(),
+                (existing, replacement) -> existing
+            ));
 
         Map<String, Object> body = new HashMap<>();
-        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("status", status.value());
         body.put("errors", errors);
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
-    }
+        return ResponseEntity.status(status).body(body);
+        }
 
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<Object> handleAllExceptions(Exception ex, WebRequest request) {

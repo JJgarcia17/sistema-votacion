@@ -1,53 +1,48 @@
-
+# Esta es la versión correcta y final
 services:
-  # --- 1. Servicio de Base de Datos (PostgreSQL) ---
   db:
-    image: postgres:14-alpine # Usamos una imagen oficial y ligera de Postgres
+    image: postgres:14-alpine
     container_name: votacion-db
     ports:
-      # Exponemos el puerto 5432 del contenedor al 5432 de nuestra máquina
-      # para que podamos conectarnos con un cliente de DB si queremos.
       - "5432:5432"
     environment:
-      # Estas son las variables de entorno que Postgres usa para inicializarse
-      # y las que nuestro backend usará para conectarse.
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=votacion_db
     volumes:
-      # Esto crea un "volumen" llamado 'postgres-data'.
-      # Docker lo gestiona para que los datos de la DB persistan
-      # incluso si detenemos o eliminamos el contenedor.
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - votacion-net # Conectamos este servicio a nuestra red interna
+      - votacion-net
 
-  # --- 2. Servicio de Backend (Nuestra API Java) ---
   api-servicio:
     container_name: votacion-api
-    # 'build: ./backend' le dice a Docker que vaya a la carpeta './backend'
-    # y construya la imagen usando el 'Dockerfile' que encuentra allí.
     build: ./backend
     ports:
-      # Exponemos el puerto 8080 del contenedor (donde corre Spring)
-      # al puerto 8080 de nuestra máquina.
       - "8080:8080"
     environment:
-      # Inyectamos las variables de entorno que nuestro 'application.properties' espera.
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=votacion_db
       - DB_USER=postgres
       - DB_PASS=postgres
     depends_on:
-      - db # ¡Crucial! Esto le dice a Docker que inicie 'api-servicio' SOLO DESPUÉS de que 'db' esté listo.
+      - db 
     networks:
-      - votacion-net # Conectamos este servicio a la misma red
+      - votacion-net
 
-# --- Definición de Redes y Volúmenes ---
+  ui-servicio:
+    container_name: votacion-ui
+    build: ./frontend
+    ports:
+      - "3000:80"
+    networks:
+      - votacion-net
+    depends_on:
+      - api-servicio
+
 networks:
-  votacion-net: # Creamos una red interna para que los contenedores se comuniquen por nombre (ej. 'db')
+  votacion-net:
     driver: bridge
 
 volumes:
-  postgres-data: # Definimos el volumen que usará 'db'
+  postgres-data:

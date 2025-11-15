@@ -1,6 +1,6 @@
 # ----- Etapa 1: Build (Construcción) -----
 # Usamos una imagen ligera de Node.js (Alpine es ideal)
-FROM node:18-alpine as builder
+FROM node:18-alpine AS builder
 
 # Establecemos el directorio de trabajo
 WORKDIR /app

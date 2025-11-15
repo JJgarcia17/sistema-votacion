@@ -1,6 +1,6 @@
 # ----- Etapa 1: Build (Construcción) -----
 # Usamos una imagen de Maven con Java 17 (Eclipse Temurin es una gran opción)
-FROM eclipse-temurin:17-jdk-jammy as builder
+FROM eclipse-temurin:17-jdk-jammy AS builder
 
 # Establecemos el directorio de trabajo dentro del contenedor
 WORKDIR /app

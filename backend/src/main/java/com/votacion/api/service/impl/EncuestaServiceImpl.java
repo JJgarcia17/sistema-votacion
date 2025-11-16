@@ -1,6 +1,8 @@
 package com.votacion.api.service.impl;
 
 import com.votacion.api.dto.EncuestaRequest;
+import com.votacion.api.dto.EncuestaResponse;
+import com.votacion.api.dto.OpcionResponse;
 import com.votacion.api.model.Encuesta;
 import com.votacion.api.model.Opcion;
 import com.votacion.api.repository.EncuestaRepository;
@@ -27,38 +29,36 @@ public class EncuestaServiceImpl implements EncuestaService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Encuesta> obtenerTodasLasEncuestas() {
-        return encuestaRepository.findAll();
+    public List<EncuestaResponse> obtenerTodasLasEncuestas() {
+        return encuestaRepository.findAll().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public Encuesta crearEncuesta(EncuestaRequest encuestaRequest) {
+    public EncuestaResponse crearEncuesta(EncuestaRequest encuestaRequest) {
 
-        // --- Patrón GOF: Builder ---
-        // Aplicamos el patrón Builder para crear la entidad.
         Encuesta nuevaEncuesta = Encuesta.builder()
                 .titulo(encuestaRequest.getTitulo())
                 .build();
 
-        // Convertimos los DTOs de Opcion a Entidades Opcion
         List<Opcion> opciones = encuestaRequest.getOpciones().stream()
                 .map(opcionDto -> Opcion.builder()
                         .textoOpcion(opcionDto.getTextoOpcion())
-                        .encuesta(nuevaEncuesta) // Vinculamos la opción a la encuesta
+                        .encuesta(nuevaEncuesta)
                         .build())
                 .collect(Collectors.toList());
 
-        nuevaEncuesta.setOpciones(opciones); // Asignamos la lista de opciones a la encuesta
+        nuevaEncuesta.setOpciones(opciones);
 
-        // Guardamos la encuesta. Gracias a "CascadeType.ALL",
-        // las opciones se guardarán automáticamente con ella.
-        return encuestaRepository.save(nuevaEncuesta);
+        Encuesta guardada = encuestaRepository.save(nuevaEncuesta);
+        return toDto(guardada);
     }
 
     @Override
     @Transactional
-    public Opcion registrarVoto(Long opcionId) {
+    public OpcionResponse registrarVoto(Long opcionId) {
         // Intentamos realizar un UPDATE atómico y obtener el nuevo contador (Postgres RETURNING)
         String sql = "UPDATE opciones SET contador_votos = contador_votos + 1 WHERE id = ? RETURNING contador_votos";
         Long nuevoContador;
@@ -68,11 +68,32 @@ public class EncuestaServiceImpl implements EncuestaService {
             throw new ResourceNotFoundException("Opción no encontrada con id: " + opcionId);
         }
 
-        // Recuperamos la entidad actualizada para devolverla al controlador
         Opcion opcion = opcionRepository.findById(opcionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Opción no encontrada con id: " + opcionId));
 
         opcion.setContadorVotos(nuevoContador);
-        return opcion;
+        return toDto(opcion);
+    }
+
+    // Mapeadores a DTOs
+    private EncuestaResponse toDto(Encuesta e) {
+        EncuestaResponse r = new EncuestaResponse();
+        r.setId(e.getId());
+        r.setTitulo(e.getTitulo());
+        if (e.getOpciones() != null) {
+            List<OpcionResponse> opciones = e.getOpciones().stream()
+                    .map(this::toDto)
+                    .collect(Collectors.toList());
+            r.setOpciones(opciones);
+        }
+        return r;
+    }
+
+    private OpcionResponse toDto(Opcion o) {
+        OpcionResponse r = new OpcionResponse();
+        r.setId(o.getId());
+        r.setTextoOpcion(o.getTextoOpcion());
+        r.setContadorVotos(o.getContadorVotos());
+        return r;
     }
 }

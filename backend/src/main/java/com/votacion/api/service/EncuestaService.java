@@ -1,39 +1,38 @@
 package com.votacion.api.service;
 
 import com.votacion.api.dto.EncuestaRequest;
-import com.votacion.api.model.Encuesta;
-import com.votacion.api.model.Opcion;
+import com.votacion.api.dto.EncuestaResponse;
+import com.votacion.api.dto.OpcionResponse;
 
 import java.util.List;
 
 /**
  * Interfaz para la lógica de negocio de las Encuestas.
- * Define el "qué" (qué se puede hacer) sin especificar el "cómo".
- * Esto cumple con el Principio de Inversión de Dependencias (SOLID).
+ * Ahora trabaja con DTOs de respuesta para desacoplar la API de las entidades JPA.
  */
 public interface EncuestaService {
 
     /**
      * Obtiene una lista de todas las encuestas disponibles.
      *
-     * @return Una lista de entidades Encuesta (incluyendo sus opciones).
+     * @return Una lista de EncuestaResponse (DTOs).
      */
-    List<Encuesta> obtenerTodasLasEncuestas();
+    List<EncuestaResponse> obtenerTodasLasEncuestas();
 
     /**
      * Crea una nueva encuesta basada en los datos de un DTO.
      *
      * @param encuestaRequest El DTO (Data Transfer Object) con la información.
-     * @return La entidad Encuesta que fue creada y guardada.
+     * @return La encuesta creada como DTO de respuesta.
      */
-    Encuesta crearEncuesta(EncuestaRequest encuestaRequest);
+    EncuestaResponse crearEncuesta(EncuestaRequest encuestaRequest);
 
     /**
      * Registra un voto para una opción específica.
      *
      * @param opcionId El ID de la opción que recibe el voto.
-     * @return La entidad Opcion actualizada con el nuevo conteo de votos.
+     * @return La opción actualizada como DTO de respuesta.
      */
-    Opcion registrarVoto(Long opcionId);
+    OpcionResponse registrarVoto(Long opcionId);
 
 }

@@ -1,9 +1,9 @@
 package com.votacion.api.controller;
 
 import com.votacion.api.dto.EncuestaRequest;
+import com.votacion.api.dto.EncuestaResponse;
+import com.votacion.api.dto.OpcionResponse;
 import jakarta.validation.Valid;
-import com.votacion.api.model.Encuesta;
-import com.votacion.api.model.Opcion;
 import com.votacion.api.service.EncuestaService; // ¡Importante! Inyectamos la Interfaz
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,8 +27,8 @@ public class EncuestaController {
      * HTTP GET /api/encuestas
      */
     @GetMapping("/encuestas")
-    public ResponseEntity<List<Encuesta>> obtenerTodasLasEncuestas() {
-        List<Encuesta> encuestas = encuestaService.obtenerTodasLasEncuestas();
+    public ResponseEntity<List<EncuestaResponse>> obtenerTodasLasEncuestas() {
+        List<EncuestaResponse> encuestas = encuestaService.obtenerTodasLasEncuestas();
         return ResponseEntity.ok(encuestas); // Devuelve 200 OK
     }
 
@@ -37,9 +37,9 @@ public class EncuestaController {
      * HTTP POST /api/encuestas
      */
     @PostMapping("/encuestas")
-    public ResponseEntity<Encuesta> crearEncuesta(@Valid @RequestBody EncuestaRequest encuestaRequest) {
+    public ResponseEntity<EncuestaResponse> crearEncuesta(@Valid @RequestBody EncuestaRequest encuestaRequest) {
         // @RequestBody convierte el JSON de la petición en nuestro DTO
-        Encuesta nuevaEncuesta = encuestaService.crearEncuesta(encuestaRequest);
+        EncuestaResponse nuevaEncuesta = encuestaService.crearEncuesta(encuestaRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevaEncuesta); // Devuelve 201 Created
     }
 
@@ -48,9 +48,9 @@ public class EncuestaController {
      * HTTP POST /api/opciones/{id}/votar
      */
     @PostMapping("/opciones/{id}/votar")
-    public ResponseEntity<Opcion> registrarVoto(@PathVariable Long id) {
+    public ResponseEntity<OpcionResponse> registrarVoto(@PathVariable Long id) {
         // @PathVariable toma el {id} de la URL y lo pasa como variable
-        Opcion opcionActualizada = encuestaService.registrarVoto(id);
+        OpcionResponse opcionActualizada = encuestaService.registrarVoto(id);
         return ResponseEntity.ok(opcionActualizada); // Devuelve 200 OK
     }
 }

@@ -14,6 +14,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.votacion.api.exception.ResourceNotFoundException;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +28,8 @@ public class EncuestaServiceImpl implements EncuestaService {
     private final EncuestaRepository encuestaRepository;
     private final OpcionRepository opcionRepository;
     private final JdbcTemplate jdbcTemplate;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     @Transactional(readOnly = true)
@@ -59,19 +63,27 @@ public class EncuestaServiceImpl implements EncuestaService {
     @Override
     @Transactional
     public OpcionResponse registrarVoto(Long opcionId) {
-        // Intentamos realizar un UPDATE atómico y obtener el nuevo contador (Postgres RETURNING)
-        String sql = "UPDATE opciones SET contador_votos = contador_votos + 1 WHERE id = ? RETURNING contador_votos";
-        Long nuevoContador;
-        try {
-            nuevoContador = jdbcTemplate.queryForObject(sql, new Object[]{opcionId}, Long.class);
-        } catch (EmptyResultDataAccessException ex) {
+        // Validación básica de entrada: rechazamos ids no positivos
+        if (opcionId == null || opcionId <= 0) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Id de opción inválido");
+        }
+
+        // Ejecutamos un UPDATE atómico en la base de datos.
+        String sql = "UPDATE opciones SET contador_votos = contador_votos + 1 WHERE id = ?";
+        int rows = jdbcTemplate.update(sql, opcionId);
+        if (rows == 0) {
             throw new ResourceNotFoundException("Opción no encontrada con id: " + opcionId);
         }
 
+        // Recuperamos la entidad gestionada por JPA y la refrescamos para sincronizar su estado
+        // con la base de datos después del UPDATE realizado por JDBC.
         Opcion opcion = opcionRepository.findById(opcionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Opción no encontrada con id: " + opcionId));
 
-        opcion.setContadorVotos(nuevoContador);
+        // entityManager.refresh garantiza que la entidad refleja los valores actuales de la BD
+        entityManager.refresh(opcion);
+
         return toDto(opcion);
     }
 

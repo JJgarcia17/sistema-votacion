@@ -28,6 +28,6 @@ public class Encuesta {
 
     // --- AÑADE ESTA ANOTACIÓN ---
     @JsonManagedReference
-    @OneToMany(mappedBy = "encuesta", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "encuesta", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Opcion> opciones;
 }

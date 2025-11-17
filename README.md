@@ -80,8 +80,28 @@ java -jar target/*.jar
 
 **Tests y calidad de código**
 
-- Estado actual: No hay tests automatizados en `backend/src/test`.
-- Recomendación: agregar pruebas unitarias para `EncuestaServiceImpl` (mocks para repositorios) y pruebas de integración con H2 o Testcontainers.
+- Estado actual: Hay pruebas automatizadas en el backend bajo `backend/src/test/java`:
+	- `com.votacion.api.ApiApplicationTests` — prueba de humo que carga el contexto de Spring Boot.
+	- `com.votacion.api.service.impl.EncuestaServiceImplTest` — pruebas unitarias para la lógica de `EncuestaServiceImpl` (usa mocks para dependencias).
+
+- Cómo ejecutar los tests del backend:
+
+	- En Windows PowerShell (desde la raíz del repo):
+
+		```pwsh
+		cd backend
+		.\mvnw.cmd test
+		```
+
+	- En Unix/macOS:
+
+		```bash
+		cd backend
+		./mvnw test
+		```
+
+- Resultados y reportes: Maven Surefire guarda los informes en `backend/target/surefire-reports`.
+
 
 **Entregables requeridos por la prueba**
 
